@@ -32,37 +32,37 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
-      # - name: Install cargo-ndk
-      #   run: cargo install cargo-ndk
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk
 
-      # - name: Install Android NDK
-      #   run: |
-      #     brew install --cask android-ndk
-      #     ndk_path="$(brew --prefix)/share/android-ndk"
-      #     ndk_version=$("$ndk_path/ndk-which" --version | head -n 1 | awk '{print $NF}')
-      #     echo "ANDROID_NDK_HOME=$ndk_path" >> $GITHUB_ENV
-      #     echo "ANDROID_NDK_ROOT=$ndk_path" >> $GITHUB_ENV
-      #     echo "Detected NDK version: $ndk_version"
+      - name: Install Android NDK
+        run: |
+          brew install --cask android-ndk
+          ndk_path="$(brew --prefix)/share/android-ndk"
+          ndk_version=$("$ndk_path/ndk-which" --version | head -n 1 | awk '{print $NF}')
+          echo "ANDROID_NDK_HOME=$ndk_path" >> $GITHUB_ENV
+          echo "ANDROID_NDK_ROOT=$ndk_path" >> $GITHUB_ENV
+          echo "Detected NDK version: $ndk_version"
 
-      # - name: Add Rust Android targets
-      #   run: rustup target add aarch64-linux-android x86_64-linux-android
+      - name: Add Rust Android targets
+        run: rustup target add aarch64-linux-android x86_64-linux-android
 
-      # - name: Build Android shared libraries
-      #   env:
-      #     ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
-      #   run: |
-      #     pushd rust
-      #     cargo ndk --platform 21 --target aarch64-linux-android --target x86_64-linux-android build --release
-      #     popd
-      #     mkdir -p android/src/main/jniLibs/arm64-v8a android/src/main/jniLibs/x86_64
-      #     cp rust/target/aarch64-linux-android/release/libopus_ffi.so android/src/main/jniLibs/arm64-v8a/
-      #     cp rust/target/x86_64-linux-android/release/libopus_ffi.so android/src/main/jniLibs/x86_64/
+      - name: Build Android shared libraries
+        env:
+          ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
+        run: |
+          pushd rust
+          cargo ndk --platform 21 --target aarch64-linux-android --target x86_64-linux-android build --release
+          popd
+          mkdir -p android/src/main/jniLibs/arm64-v8a android/src/main/jniLibs/x86_64
+          cp rust/target/aarch64-linux-android/release/libopus_ffi.so android/src/main/jniLibs/arm64-v8a/
+          cp rust/target/x86_64-linux-android/release/libopus_ffi.so android/src/main/jniLibs/x86_64/
 
-      # - name: Build macOS (arm64)
-      #   run: ARCHS=arm64 PLATFORM_NAME=macosx CONFIGURATION=Release tool/build_apple.sh
+      - name: Build macOS (arm64)
+        run: ARCHS=arm64 PLATFORM_NAME=macosx CONFIGURATION=Release tool/build_apple.sh
 
-      # - name: Build macOS (x86_64)
-      #   run: ARCHS=x86_64 PLATFORM_NAME=macosx CONFIGURATION=Release tool/build_apple.sh
+      - name: Build macOS (x86_64)
+        run: ARCHS=x86_64 PLATFORM_NAME=macosx CONFIGURATION=Release tool/build_apple.sh
 
       - name: Build iOS (arm64 device)
         run: ARCHS=arm64 PLATFORM_NAME=iphoneos CONFIGURATION=Release tool/build_apple.sh
