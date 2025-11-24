@@ -1,19 +1,15 @@
 name: Publish to pub.dev
 
 on:
-  workflow_dispatch:
-    inputs:
-      release_mode:
-        description: "发布模式（dry-run 或 release）"
-        required: true
-        default: dry-run
-        type: choice
-        options:
-          - dry-run
-          - release
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
 
 jobs:
   publish:
+    permissions:
+      id-token: write # Required for authentication using OIDC
+
     runs-on: macos-latest
 
     steps:
@@ -23,13 +19,10 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Install cargo-ndk
-        run: cargo install cargo-ndk
-
-      - name: Install Android NDK
+      - name: Add Rust Apple targets
         run: |
-          brew install --cask android-ndk
-          echo "ANDROID_NDK_HOME=$(brew --prefix android-ndk)" >> $GITHUB_ENV
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+          rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -39,23 +32,37 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
-      - name: Add Rust Android targets
-        run: rustup target add aarch64-linux-android x86_64-linux-android
+      # - name: Install cargo-ndk
+      #   run: cargo install cargo-ndk
 
-      - name: Build Android shared libraries
-        env:
-          ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
-        run: |
-          cargo ndk --platform 21 --target aarch64-linux-android --target x86_64-linux-android --release
-          mkdir -p android/src/main/jniLibs/arm64-v8a android/src/main/jniLibs/x86_64
-          cp rust/target/aarch64-linux-android/release/libopus_ffi.so android/src/main/jniLibs/arm64-v8a/libopus_ffi.so
-          cp rust/target/x86_64-linux-android/release/libopus_ffi.so android/src/main/jniLibs/x86_64/libopus_ffi.so
+      # - name: Install Android NDK
+      #   run: |
+      #     brew install --cask android-ndk
+      #     ndk_path="$(brew --prefix)/share/android-ndk"
+      #     ndk_version=$("$ndk_path/ndk-which" --version | head -n 1 | awk '{print $NF}')
+      #     echo "ANDROID_NDK_HOME=$ndk_path" >> $GITHUB_ENV
+      #     echo "ANDROID_NDK_ROOT=$ndk_path" >> $GITHUB_ENV
+      #     echo "Detected NDK version: $ndk_version"
 
-      - name: Build macOS (arm64)
-        run: ARCHS=arm64 PLATFORM_NAME=macosx CONFIGURATION=Release tool/build_apple.sh
+      # - name: Add Rust Android targets
+      #   run: rustup target add aarch64-linux-android x86_64-linux-android
 
-      - name: Build macOS (x86_64)
-        run: ARCHS=x86_64 PLATFORM_NAME=macosx CONFIGURATION=Release tool/build_apple.sh
+      # - name: Build Android shared libraries
+      #   env:
+      #     ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
+      #   run: |
+      #     pushd rust
+      #     cargo ndk --platform 21 --target aarch64-linux-android --target x86_64-linux-android build --release
+      #     popd
+      #     mkdir -p android/src/main/jniLibs/arm64-v8a android/src/main/jniLibs/x86_64
+      #     cp rust/target/aarch64-linux-android/release/libopus_ffi.so android/src/main/jniLibs/arm64-v8a/
+      #     cp rust/target/x86_64-linux-android/release/libopus_ffi.so android/src/main/jniLibs/x86_64/
+
+      # - name: Build macOS (arm64)
+      #   run: ARCHS=arm64 PLATFORM_NAME=macosx CONFIGURATION=Release tool/build_apple.sh
+
+      # - name: Build macOS (x86_64)
+      #   run: ARCHS=x86_64 PLATFORM_NAME=macosx CONFIGURATION=Release tool/build_apple.sh
 
       - name: Build iOS (arm64 device)
         run: ARCHS=arm64 PLATFORM_NAME=iphoneos CONFIGURATION=Release tool/build_apple.sh
@@ -69,14 +76,9 @@ jobs:
       - name: Flutter analyze
         run: flutter analyze
 
-      - name: Flutter pub publish (dry run)
-        if: ${{ github.event.inputs.release_mode == 'dry-run' }}
-        run: flutter pub publish --dry-run
-
-      - name: Flutter pub publish (release)
-        if: ${{ github.event.inputs.release_mode == 'release' }}
+      - name: Flutter pub publish
         env:
           PUB_DEV_PUBLISH_ACCESS_TOKEN: ${{ secrets.PUB_DEV_PUBLISH_ACCESS_TOKEN }}
           PUB_DEV_REFRESH_TOKEN: ${{ secrets.PUB_DEV_REFRESH_TOKEN }}
-        run: flutter pub publish --force
+        run: dart pub publish --force
 
