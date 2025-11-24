@@ -1,0 +1,16 @@
+[package]
+name = "opus_ffi"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+opus = { git = "https://github.com/jesses2025smith/opus-rs.git" }
+
+[dev-dependencies]
+anyhow = "1.0"
+
+[build-dependencies]
+cbindgen = "0.29"
