@@ -8,62 +8,350 @@
 // ignore_for_file: type=lint
 import 'dart:ffi' as ffi;
 
-/// Bindings for `src/opus_ffi.h`.
+/// Bindings for `rust/include/opus_ffi.h`.
 ///
 /// Regenerate bindings with `dart run ffigen --config ffigen.yaml`.
-///
+
+/// Opus 错误结构体
+final class OpusError extends ffi.Struct {
+  @ffi.Int32()
+  external int code;
+
+  external ffi.Pointer<ffi.Char> message;
+}
+
+/// Opus 解码器不透明指针类型
+final class Decoder extends ffi.Opaque {}
+
+/// Opus 编码器不透明指针类型
+final class Encoder extends ffi.Opaque {}
+
 class OpusFfiBindings {
   /// Holds the symbol lookup function.
   final ffi.Pointer<T> Function<T extends ffi.NativeType>(String symbolName)
-      _lookup;
+  _lookup;
 
   /// The symbols are looked up in [dynamicLibrary].
   OpusFfiBindings(ffi.DynamicLibrary dynamicLibrary)
-      : _lookup = dynamicLibrary.lookup;
+    : _lookup = dynamicLibrary.lookup;
 
   /// The symbols are looked up with [lookup].
   OpusFfiBindings.fromLookup(
-      ffi.Pointer<T> Function<T extends ffi.NativeType>(String symbolName)
-          lookup)
-      : _lookup = lookup;
+    ffi.Pointer<T> Function<T extends ffi.NativeType>(String symbolName) lookup,
+  ) : _lookup = lookup;
 
-  /// A very short-lived native function.
-  ///
-  /// For very short-lived functions, it is fine to call them on the main isolate.
-  /// They will block the Dart execution while running the native function, so
-  /// only do this for native functions which are guaranteed to be short-lived.
-  int sum(
-    int a,
-    int b,
+  /// 创建新的 Opus 解码器
+  int new_decoder(
+    int channels,
+    int sample_rate,
+    ffi.Pointer<ffi.Pointer<Decoder>> result,
+    ffi.Pointer<OpusError> error,
   ) {
-    return _sum(
-      a,
-      b,
+    return _new_decoder(channels, sample_rate, result, error);
+  }
+
+  late final _new_decoderPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Int32 Function(
+            ffi.Uint32,
+            ffi.Uint32,
+            ffi.Pointer<ffi.Pointer<Decoder>>,
+            ffi.Pointer<OpusError>,
+          )
+        >
+      >('new_decoder');
+  late final _new_decoder = _new_decoderPtr
+      .asFunction<
+        int Function(
+          int,
+          int,
+          ffi.Pointer<ffi.Pointer<Decoder>>,
+          ffi.Pointer<OpusError>,
+        )
+      >();
+
+  /// 解码 Opus 音频数据包为 PCM 样本（16 位整数）
+  int decode(
+    ffi.Pointer<Decoder> decoder,
+    ffi.Pointer<ffi.Uint8> input,
+    int input_size,
+    ffi.Pointer<ffi.Int16> output,
+    int output_size,
+    bool fec,
+    ffi.Pointer<ffi.UintPtr> decoded_size,
+    ffi.Pointer<OpusError> error,
+  ) {
+    return _decode(
+      decoder,
+      input,
+      input_size,
+      output,
+      output_size,
+      fec,
+      decoded_size,
+      error,
     );
   }
 
-  late final _sumPtr =
-      _lookup<ffi.NativeFunction<ffi.Int Function(ffi.Int, ffi.Int)>>('sum');
-  late final _sum = _sumPtr.asFunction<int Function(int, int)>();
+  late final _decodePtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Int32 Function(
+            ffi.Pointer<Decoder>,
+            ffi.Pointer<ffi.Uint8>,
+            ffi.Uint32,
+            ffi.Pointer<ffi.Int16>,
+            ffi.Uint32,
+            ffi.Bool,
+            ffi.Pointer<ffi.UintPtr>,
+            ffi.Pointer<OpusError>,
+          )
+        >
+      >('decode');
+  late final _decode = _decodePtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<Decoder>,
+          ffi.Pointer<ffi.Uint8>,
+          int,
+          ffi.Pointer<ffi.Int16>,
+          int,
+          bool,
+          ffi.Pointer<ffi.UintPtr>,
+          ffi.Pointer<OpusError>,
+        )
+      >();
 
-  /// A longer lived native function, which occupies the thread calling it.
-  ///
-  /// Do not call these kind of native functions in the main isolate. They will
-  /// block Dart execution. This will cause dropped frames in Flutter applications.
-  /// Instead, call these native functions on a separate isolate.
-  int sum_long_running(
-    int a,
-    int b,
+  /// 解码 Opus 音频数据包为 PCM 样本（32 位浮点数）
+  int decode_float(
+    ffi.Pointer<Decoder> decoder,
+    ffi.Pointer<ffi.Uint8> input,
+    int input_size,
+    ffi.Pointer<ffi.Float> output,
+    int output_size,
+    bool fec,
+    ffi.Pointer<ffi.UintPtr> result,
+    ffi.Pointer<OpusError> error,
   ) {
-    return _sum_long_running(
-      a,
-      b,
+    return _decode_float(
+      decoder,
+      input,
+      input_size,
+      output,
+      output_size,
+      fec,
+      result,
+      error,
     );
   }
 
-  late final _sum_long_runningPtr =
-      _lookup<ffi.NativeFunction<ffi.Int Function(ffi.Int, ffi.Int)>>(
-          'sum_long_running');
-  late final _sum_long_running =
-      _sum_long_runningPtr.asFunction<int Function(int, int)>();
+  late final _decode_floatPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Int32 Function(
+            ffi.Pointer<Decoder>,
+            ffi.Pointer<ffi.Uint8>,
+            ffi.Uint32,
+            ffi.Pointer<ffi.Float>,
+            ffi.Uint32,
+            ffi.Bool,
+            ffi.Pointer<ffi.UintPtr>,
+            ffi.Pointer<OpusError>,
+          )
+        >
+      >('decode_float');
+  late final _decode_float = _decode_floatPtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<Decoder>,
+          ffi.Pointer<ffi.Uint8>,
+          int,
+          ffi.Pointer<ffi.Float>,
+          int,
+          bool,
+          ffi.Pointer<ffi.UintPtr>,
+          ffi.Pointer<OpusError>,
+        )
+      >();
+
+  /// 释放 Opus 解码器实例
+  void free_decoder(ffi.Pointer<Decoder> decoder) {
+    return _free_decoder(decoder);
+  }
+
+  late final _free_decoderPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<Decoder>)>>(
+        'free_decoder',
+      );
+  late final _free_decoder = _free_decoderPtr
+      .asFunction<void Function(ffi.Pointer<Decoder>)>();
+
+  /// 创建新的 Opus 编码器
+  int new_encoder(
+    int channels,
+    int sample_rate,
+    int application,
+    ffi.Pointer<ffi.Pointer<Encoder>> result,
+    ffi.Pointer<OpusError> error,
+  ) {
+    return _new_encoder(channels, sample_rate, application, result, error);
+  }
+
+  late final _new_encoderPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Int32 Function(
+            ffi.Uint32,
+            ffi.Uint32,
+            ffi.Uint32,
+            ffi.Pointer<ffi.Pointer<Encoder>>,
+            ffi.Pointer<OpusError>,
+          )
+        >
+      >('new_encoder');
+  late final _new_encoder = _new_encoderPtr
+      .asFunction<
+        int Function(
+          int,
+          int,
+          int,
+          ffi.Pointer<ffi.Pointer<Encoder>>,
+          ffi.Pointer<OpusError>,
+        )
+      >();
+
+  /// 将 PCM 样本编码为 Opus 数据包（16 位整数输入）
+  int encode(
+    ffi.Pointer<Encoder> encoder,
+    ffi.Pointer<ffi.Int16> input,
+    int input_size,
+    ffi.Pointer<ffi.Uint8> output,
+    int output_size,
+    ffi.Pointer<ffi.UintPtr> encoded_size,
+    ffi.Pointer<OpusError> error,
+  ) {
+    return _encode(
+      encoder,
+      input,
+      input_size,
+      output,
+      output_size,
+      encoded_size,
+      error,
+    );
+  }
+
+  late final _encodePtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Int32 Function(
+            ffi.Pointer<Encoder>,
+            ffi.Pointer<ffi.Int16>,
+            ffi.Uint32,
+            ffi.Pointer<ffi.Uint8>,
+            ffi.Uint32,
+            ffi.Pointer<ffi.UintPtr>,
+            ffi.Pointer<OpusError>,
+          )
+        >
+      >('encode');
+  late final _encode = _encodePtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<Encoder>,
+          ffi.Pointer<ffi.Int16>,
+          int,
+          ffi.Pointer<ffi.Uint8>,
+          int,
+          ffi.Pointer<ffi.UintPtr>,
+          ffi.Pointer<OpusError>,
+        )
+      >();
+
+  /// 将 PCM 样本编码为 Opus 数据包（32 位浮点数输入）
+  int encode_float(
+    ffi.Pointer<Encoder> encoder,
+    ffi.Pointer<ffi.Float> input,
+    int input_size,
+    ffi.Pointer<ffi.Uint8> output,
+    int output_size,
+    ffi.Pointer<ffi.UintPtr> result,
+    ffi.Pointer<OpusError> error,
+  ) {
+    return _encode_float(
+      encoder,
+      input,
+      input_size,
+      output,
+      output_size,
+      result,
+      error,
+    );
+  }
+
+  late final _encode_floatPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Int32 Function(
+            ffi.Pointer<Encoder>,
+            ffi.Pointer<ffi.Float>,
+            ffi.Uint32,
+            ffi.Pointer<ffi.Uint8>,
+            ffi.Uint32,
+            ffi.Pointer<ffi.UintPtr>,
+            ffi.Pointer<OpusError>,
+          )
+        >
+      >('encode_float');
+  late final _encode_float = _encode_floatPtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<Encoder>,
+          ffi.Pointer<ffi.Float>,
+          int,
+          ffi.Pointer<ffi.Uint8>,
+          int,
+          ffi.Pointer<ffi.UintPtr>,
+          ffi.Pointer<OpusError>,
+        )
+      >();
+
+  /// 释放 Opus 编码器实例
+  void free_encoder(ffi.Pointer<Encoder> encoder) {
+    return _free_encoder(encoder);
+  }
+
+  late final _free_encoderPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<Encoder>)>>(
+        'free_encoder',
+      );
+  late final _free_encoder = _free_encoderPtr
+      .asFunction<void Function(ffi.Pointer<Encoder>)>();
+
+  /// 释放由 Rust 分配的 C 字符串
+  void free_c_string(ffi.Pointer<ffi.Pointer<ffi.Char>> p) {
+    return _free_c_string(p);
+  }
+
+  late final _free_c_stringPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(ffi.Pointer<ffi.Pointer<ffi.Char>>)
+        >
+      >('free_c_string');
+  late final _free_c_string = _free_c_stringPtr
+      .asFunction<void Function(ffi.Pointer<ffi.Pointer<ffi.Char>>)>();
+
+  /// 释放堆上分配的 OpusError 结构
+  void free_opus_error(ffi.Pointer<OpusError> e) {
+    return _free_opus_error(e);
+  }
+
+  late final _free_opus_errorPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<OpusError>)>>(
+        'free_opus_error',
+      );
+  late final _free_opus_error = _free_opus_errorPtr
+      .asFunction<void Function(ffi.Pointer<OpusError>)>();
 }
