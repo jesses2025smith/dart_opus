@@ -1,9 +1,21 @@
 /* Opus FFI Bindings for Rust */
 
+#ifndef OPUS_FFI_H
+#define OPUS_FFI_H
+
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+
+/**
+ * Opus 解码器不透明指针类型
+ */
+typedef struct Decoder Decoder;
+/**
+ * Opus 编码器不透明指针类型
+ */
+typedef struct Encoder Encoder;
 
 /**
  * Opus 错误结构体，用于在 C 和 Rust 之间传递错误信息
@@ -30,16 +42,6 @@ typedef struct OpusError {
   int code;
   char *message;
 } OpusError;
-
-/**
- * Opus 解码器不透明指针类型
- */
-typedef struct Decoder Decoder;
-
-/**
- * Opus 编码器不透明指针类型
- */
-typedef struct Encoder Encoder;
 
 /**
  * 创建新的 Opus 解码器
@@ -401,3 +403,5 @@ void free_c_string(char **p);
  * ```
  */
 void free_opus_error(struct OpusError *e);
+
+#endif  /* OPUS_FFI_H */
