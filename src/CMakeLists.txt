@@ -6,6 +6,7 @@ cmake_minimum_required(VERSION 3.10)
 project(opus_ffi_library VERSION 0.0.1 LANGUAGES C)
 
 set(RUST_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../rust")
+set(RUST_TARGET "$ENV{CARGO_BUILD_TARGET}")
 
 if(ANDROID)
   add_library(opus_ffi SHARED IMPORTED)
@@ -17,17 +18,34 @@ if(ANDROID)
   # Support Android 15 16k page size
   target_link_options(opus_ffi INTERFACE "-Wl,-z,max-page-size=16384")
 else()
-  if(WIN32)
-    set(RUST_LIB "${RUST_DIR}/target/release/opus_ffi.dll")
-  elseif(APPLE)
-    set(RUST_LIB "${RUST_DIR}/target/release/libopus_ffi.dylib")
+  if(RUST_TARGET)
+    if(RUST_TARGET MATCHES "windows")
+      set(RUST_LIB "${RUST_DIR}/target/${RUST_TARGET}/release/opus_ffi.dll")
+    elseif(RUST_TARGET MATCHES "ios")
+      set(RUST_LIB "${RUST_DIR}/target/${RUST_TARGET}/release/libopus_ffi.a")
+    elseif(RUST_TARGET MATCHES "darwin")
+      set(RUST_LIB "${RUST_DIR}/target/${RUST_TARGET}/release/libopus_ffi.dylib")
+    else()
+      set(RUST_LIB "${RUST_DIR}/target/${RUST_TARGET}/release/libopus_ffi.so")
+    endif()
   else()
-    set(RUST_LIB "${RUST_DIR}/target/release/libopus_ffi.so")
+    if(WIN32)
+      set(RUST_LIB "${RUST_DIR}/target/release/opus_ffi.dll")
+    elseif(APPLE)
+      set(RUST_LIB "${RUST_DIR}/target/release/libopus_ffi.dylib")
+    else()
+      set(RUST_LIB "${RUST_DIR}/target/release/libopus_ffi.so")
+    endif()
+  endif()
+
+  set(CARGO_BUILD_CMD cargo build --manifest-path ${RUST_DIR}/Cargo.toml --release)
+  if(RUST_TARGET)
+    list(APPEND CARGO_BUILD_CMD --target ${RUST_TARGET})
   endif()
 
   add_custom_command(
     OUTPUT ${RUST_LIB}
-    COMMAND cargo build --manifest-path ${RUST_DIR}/Cargo.toml --release
+    COMMAND ${CARGO_BUILD_CMD}
     WORKING_DIRECTORY ${RUST_DIR}
     BYPRODUCTS ${RUST_LIB}
     COMMENT "Building Rust opus_ffi library"

@@ -1,5 +1,5 @@
 name: opus_ffi
-description: "A new Flutter FFI plugin project."
+description: "Opus ffi plugin project."
 version: 0.0.1
 homepage:
 
@@ -27,6 +27,8 @@ flutter:
       ios:
         ffiPlugin: true
       linux:
+        ffiPlugin: true
+      macos:
         ffiPlugin: true
       windows:
         ffiPlugin: true
