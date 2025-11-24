@@ -1,0 +1,82 @@
+name: Publish to pub.dev
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_mode:
+        description: "发布模式（dry-run 或 release）"
+        required: true
+        default: dry-run
+        type: choice
+        options:
+          - dry-run
+          - release
+
+jobs:
+  publish:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk
+
+      - name: Install Android NDK
+        run: |
+          brew install --cask android-ndk
+          echo "ANDROID_NDK_HOME=$(brew --prefix android-ndk)" >> $GITHUB_ENV
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Add Rust Android targets
+        run: rustup target add aarch64-linux-android x86_64-linux-android
+
+      - name: Build Android shared libraries
+        env:
+          ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
+        run: |
+          cargo ndk --platform 21 --target aarch64-linux-android --target x86_64-linux-android --release
+          mkdir -p android/src/main/jniLibs/arm64-v8a android/src/main/jniLibs/x86_64
+          cp rust/target/aarch64-linux-android/release/libopus_ffi.so android/src/main/jniLibs/arm64-v8a/libopus_ffi.so
+          cp rust/target/x86_64-linux-android/release/libopus_ffi.so android/src/main/jniLibs/x86_64/libopus_ffi.so
+
+      - name: Build macOS (arm64)
+        run: ARCHS=arm64 PLATFORM_NAME=macosx CONFIGURATION=Release tool/build_apple.sh
+
+      - name: Build macOS (x86_64)
+        run: ARCHS=x86_64 PLATFORM_NAME=macosx CONFIGURATION=Release tool/build_apple.sh
+
+      - name: Build iOS (arm64 device)
+        run: ARCHS=arm64 PLATFORM_NAME=iphoneos CONFIGURATION=Release tool/build_apple.sh
+
+      - name: Build iOS (arm64 simulator)
+        run: ARCHS=arm64 PLATFORM_NAME=iphonesimulator EFFECTIVE_PLATFORM_NAME=-iphonesimulator CONFIGURATION=Release tool/build_apple.sh
+
+      - name: Build iOS (x86_64 simulator)
+        run: ARCHS=x86_64 PLATFORM_NAME=iphonesimulator EFFECTIVE_PLATFORM_NAME=-iphonesimulator CONFIGURATION=Release tool/build_apple.sh
+
+      - name: Flutter analyze
+        run: flutter analyze
+
+      - name: Flutter pub publish (dry run)
+        if: ${{ github.event.inputs.release_mode == 'dry-run' }}
+        run: flutter pub publish --dry-run
+
+      - name: Flutter pub publish (release)
+        if: ${{ github.event.inputs.release_mode == 'release' }}
+        env:
+          PUB_DEV_PUBLISH_ACCESS_TOKEN: ${{ secrets.PUB_DEV_PUBLISH_ACCESS_TOKEN }}
+          PUB_DEV_REFRESH_TOKEN: ${{ secrets.PUB_DEV_REFRESH_TOKEN }}
+        run: flutter pub publish --force
+
