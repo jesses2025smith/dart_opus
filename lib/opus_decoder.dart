@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:ffi/ffi.dart';
 
+// ignore: unnecessary_import
 import 'opus_error.dart';
 import 'opus_ffi.dart';
 import 'opus_ffi_bindings_generated.dart';

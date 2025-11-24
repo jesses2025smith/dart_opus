@@ -2,6 +2,9 @@ import 'dart:ffi';
 import 'dart:io';
 
 import 'opus_ffi_bindings_generated.dart';
+export 'opus_decoder.dart';
+export 'opus_encoder.dart';
+export 'opus_error.dart';
 
 const String _libName = 'opus_ffi';
 
