@@ -60,7 +60,8 @@ class OpusEncoder {
   /// 返回编码后的 Opus 数据包
   /// 抛出 [OpusException] 如果编码失败
   Uint8List encode(Int16List input, {int? inputSize}) {
-    if (_encoder == null) {
+    final encoder = _encoder;
+    if (encoder == null) {
       throw StateError('Encoder has been disposed');
     }
 
@@ -74,7 +75,7 @@ class OpusEncoder {
       inputPtr.asTypedList(size).setAll(0, input);
 
       final res = bindings.encode(
-        _encoder!,
+        encoder,
         inputPtr,
         size,
         output,
@@ -111,7 +112,8 @@ class OpusEncoder {
   /// 返回编码后的 Opus 数据包
   /// 抛出 [OpusException] 如果编码失败
   Uint8List encodeFloat(Float32List input, {int? inputSize}) {
-    if (_encoder == null) {
+    final encoder = _encoder;
+    if (encoder == null) {
       throw StateError('Encoder has been disposed');
     }
 
@@ -125,7 +127,7 @@ class OpusEncoder {
       inputPtr.asTypedList(size).setAll(0, input);
 
       final res = bindings.encode_float(
-        _encoder!,
+        encoder,
         inputPtr,
         size,
         output,
@@ -156,9 +158,10 @@ class OpusEncoder {
 
   /// 释放编码器资源
   void dispose() {
-    if (_encoder != null) {
-      bindings.free_encoder(_encoder!);
-      _encoder = null;
+    final encoder = _encoder;
+    _encoder = null;
+    if (encoder != null) {
+      bindings.free_encoder(encoder);
     }
   }
 }

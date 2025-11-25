@@ -9,14 +9,14 @@ Pod::Spec.new do |s|
   s.description      = <<-DESC
 Opus ffi plugin project.
                        DESC
-  s.homepage         = 'http://example.com'
+  s.homepage         = 'https://github.com/jesses2025smith/dart_opus.git'
   s.license          = { :file => '../LICENSE' }
   s.author           = { 'Jesse Smith' => 'jesses2025smith@gmail.com' }
 
   s.source           = { :path => '.' }
   s.source_files     = 'Classes/**/*'
-  s.vendored_libraries = 'Libraries/**/*.dylib'
-  s.preserve_paths = 'Libraries'
+  s.public_header_files = 'Classes/**/*.h'
+  s.vendored_frameworks = 'Libraries/opus_ffi.xcframework'
 
   # If your plugin requires a privacy manifest, for example if it collects user
   # data, update the PrivacyInfo.xcprivacy file to describe your plugin's

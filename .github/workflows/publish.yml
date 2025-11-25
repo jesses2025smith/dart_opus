@@ -102,10 +102,10 @@ jobs:
       - name: Build iOS (x86_64 simulator)
         run: ARCHS=x86_64 PLATFORM_NAME=iphonesimulator EFFECTIVE_PLATFORM_NAME=-iphonesimulator CONFIGURATION=Release tool/build_apple.sh
 
-      - name: Create iOS XCFramework
+      - name: Create Apple XCFrameworks
         run: |
-          chmod +x tool/create_ios_xcframework.sh
-          ./tool/create_ios_xcframework.sh
+          chmod +x tool/create_apple_xcframeworks.sh
+          ./tool/create_apple_xcframeworks.sh
 
       # Apple builds are typically output to specific directories by the script or xcodebuild.
       # Assuming the script places them in ios/ and macos/ or similar.
@@ -123,16 +123,16 @@ jobs:
       # Since I can't see build_apple.sh right now (I didn't read it fully), I will upload 'ios' and 'macos' folders.
       
       - name: Upload iOS Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ios-libs
           path: ios/Libraries/opus_ffi.xcframework
 
       - name: Upload macOS Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: macos-libs
-          path: macos
+          path: macos/Libraries/opus_ffi.xcframework
 
   publish:
     needs: [build-android-linux, build-windows, build-apple]
@@ -161,7 +161,7 @@ jobs:
           path: windows
 
       - name: Download iOS Artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: ios-libs
           path: ios/Libraries/opus_ffi.xcframework
@@ -170,7 +170,7 @@ jobs:
         uses: actions/download-artifact@v5
         with:
           name: macos-libs
-          path: macos
+          path: macos/Libraries/opus_ffi.xcframework
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2

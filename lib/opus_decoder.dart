@@ -53,7 +53,8 @@ class OpusDecoder {
   /// 返回解码后的 PCM 样本（16 位有符号整数）
   /// 抛出 [OpusException] 如果解码失败
   Int16List decode(Uint8List input, {bool fec = false}) {
-    if (_decoder == null) {
+    final decoder = _decoder;
+    if (decoder == null) {
       throw StateError('Decoder has been disposed');
     }
 
@@ -69,7 +70,7 @@ class OpusDecoder {
       inputPtr.asTypedList(input.length).setAll(0, input);
 
       final res = bindings.decode(
-        _decoder!,
+        decoder,
         inputPtr,
         input.length,
         output,
@@ -107,7 +108,8 @@ class OpusDecoder {
   /// 返回解码后的浮点 PCM 样本（范围通常在 [-1.0, 1.0] 之间）
   /// 抛出 [OpusException] 如果解码失败
   Float32List decodeFloat(Uint8List input, {bool fec = false}) {
-    if (_decoder == null) {
+    final decoder = _decoder;
+    if (decoder == null) {
       throw StateError('Decoder has been disposed');
     }
 
@@ -121,7 +123,7 @@ class OpusDecoder {
       inputPtr.asTypedList(input.length).setAll(0, input);
 
       final res = bindings.decode_float(
-        _decoder!,
+        decoder,
         inputPtr,
         input.length,
         output,
@@ -153,9 +155,10 @@ class OpusDecoder {
 
   /// 释放解码器资源
   void dispose() {
-    if (_decoder != null) {
-      bindings.free_decoder(_decoder!);
-      _decoder = null;
+    final decoder = _decoder;
+    _decoder = null;
+    if (decoder != null) {
+      bindings.free_decoder(decoder);
     }
   }
 }

@@ -9,7 +9,7 @@ Pod::Spec.new do |s|
   s.description      = <<-DESC
 Opus ffi plugin project.
                        DESC
-  s.homepage         = 'http://example.com'
+  s.homepage         = 'https://github.com/jesses2025smith/dart_opus.git'
   s.license          = { :file => '../LICENSE' }
   s.author           = { 'Jesse Smith' => 'jesses2025smith@gmail.com' }
 
