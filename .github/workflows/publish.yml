@@ -76,6 +76,9 @@ jobs:
       - name: Flutter analyze
         run: flutter analyze
 
+      - name: Setup Pub Credentials
+        uses: dart-lang/setup-dart@v1
+
       - name: Flutter pub publish
         # env:
         #   PUB_DEV_PUBLISH_ACCESS_TOKEN: ${{ secrets.PUB_DEV_PUBLISH_ACCESS_TOKEN }}
