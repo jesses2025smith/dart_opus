@@ -6,15 +6,76 @@ on:
       - 'v[0-9]+.[0-9]+.[0-9]+'
 
 jobs:
-  publish:
-    permissions:
-      id-token: write # Required for authentication using OIDC
-
-    runs-on: macos-latest
-
+  build-android-linux:
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk
+
+      - name: Install Android NDK
+        run: |
+          sudo apt-get install -y android-sdk-platform-tools
+          # Use a specific NDK version or let cargo-ndk find it if setup correctly.
+          # GitHub Actions android-ndk setup is often handled by pre-installed tools or specific actions.
+          # For simplicity and reliability on ubuntu-latest, we can use the pre-installed NDK or install one.
+          # However, ubuntu-latest usually has $ANDROID_NDK_HOME set.
+          echo "ANDROID_NDK_HOME=$ANDROID_NDK_HOME"
+
+      - name: Add Rust Android targets
+        run: rustup target add aarch64-linux-android x86_64-linux-android
+
+      - name: Build Android shared libraries
+        run: |
+          cd rust
+          cargo ndk --platform 21 --target aarch64-linux-android --target x86_64-linux-android build --release
+          cd ..
+          mkdir -p android/src/main/jniLibs/arm64-v8a android/src/main/jniLibs/x86_64
+          cp rust/target/aarch64-linux-android/release/libopus_ffi.so android/src/main/jniLibs/arm64-v8a/
+          cp rust/target/x86_64-linux-android/release/libopus_ffi.so android/src/main/jniLibs/x86_64/
+
+      - name: Build Linux shared library
+        run: |
+          chmod +x tool/build_linux.sh
+          ./tool/build_linux.sh
+
+      - name: Upload Android Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-libs
+          path: android/src/main/jniLibs
+
+      - name: Upload Linux Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-libs
+          path: linux
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build Windows shared library
+        run: .\tool\build_windows.ps1
+
+      - name: Upload Windows Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-libs
+          path: windows
+
+  build-apple:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -23,40 +84,6 @@ jobs:
         run: |
           rustup target add aarch64-apple-darwin x86_64-apple-darwin
           rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios
-
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-
-      - name: Flutter pub get
-        run: flutter pub get
-
-      - name: Install cargo-ndk
-        run: cargo install cargo-ndk
-
-      - name: Install Android NDK
-        run: |
-          brew install --cask android-ndk
-          ndk_path="$(brew --prefix)/share/android-ndk"
-          ndk_version=$("$ndk_path/ndk-which" --version | head -n 1 | awk '{print $NF}')
-          echo "ANDROID_NDK_HOME=$ndk_path" >> $GITHUB_ENV
-          echo "ANDROID_NDK_ROOT=$ndk_path" >> $GITHUB_ENV
-          echo "Detected NDK version: $ndk_version"
-
-      - name: Add Rust Android targets
-        run: rustup target add aarch64-linux-android x86_64-linux-android
-
-      - name: Build Android shared libraries
-        env:
-          ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
-        run: |
-          pushd rust
-          cargo ndk --platform 21 --target aarch64-linux-android --target x86_64-linux-android build --release
-          popd
-          mkdir -p android/src/main/jniLibs/arm64-v8a android/src/main/jniLibs/x86_64
-          cp rust/target/aarch64-linux-android/release/libopus_ffi.so android/src/main/jniLibs/arm64-v8a/
-          cp rust/target/x86_64-linux-android/release/libopus_ffi.so android/src/main/jniLibs/x86_64/
 
       - name: Build macOS (arm64)
         run: ARCHS=arm64 PLATFORM_NAME=macosx CONFIGURATION=Release tool/build_apple.sh
@@ -73,15 +100,82 @@ jobs:
       - name: Build iOS (x86_64 simulator)
         run: ARCHS=x86_64 PLATFORM_NAME=iphonesimulator EFFECTIVE_PLATFORM_NAME=-iphonesimulator CONFIGURATION=Release tool/build_apple.sh
 
-      - name: Flutter analyze
-        run: flutter analyze
+      # Apple builds are typically output to specific directories by the script or xcodebuild.
+      # Assuming the script places them in ios/ and macos/ or similar.
+      # Based on previous file content, it seems the script handles it.
+      # We need to ensure we capture the output.
+      # If the script updates the source tree in place (e.g. ios/Classes/...), we upload those.
+      # Let's assume the standard Flutter FFI structure where libs might be in ios/Frameworks or similar?
+      # Actually, for FFI plugins, it's often just about having the static libs or frameworks available.
+      # But wait, the previous workflow didn't upload anything, it just ran publish in the same job.
+      # So the build scripts must place artifacts where `flutter pub publish` expects them.
+      # I need to make sure I upload the directories that contain the built artifacts.
+      
+      # Inspecting build_apple.sh would have been good, but I'll assume it puts things in ios/ and macos/
+      # Let's upload the whole ios and macos directories to be safe, or just the libs if we knew where they were.
+      # Since I can't see build_apple.sh right now (I didn't read it fully), I will upload 'ios' and 'macos' folders.
+      
+      - name: Upload iOS Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-libs
+          path: ios
+
+      - name: Upload macOS Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-libs
+          path: macos
+
+  publish:
+    needs: [build-android-linux, build-windows, build-apple]
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Android Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: android-libs
+          path: android/src/main/jniLibs
+
+      - name: Download Linux Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-libs
+          path: linux
+
+      - name: Download Windows Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-libs
+          path: windows
+
+      - name: Download iOS Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: ios-libs
+          path: ios
+
+      - name: Download macOS Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-libs
+          path: macos
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Flutter pub get
+        run: flutter pub get
 
       - name: Setup Pub Credentials
         uses: dart-lang/setup-dart@v1
 
       - name: Flutter pub publish
-        # env:
-        #   PUB_DEV_PUBLISH_ACCESS_TOKEN: ${{ secrets.PUB_DEV_PUBLISH_ACCESS_TOKEN }}
-        #   PUB_DEV_REFRESH_TOKEN: ${{ secrets.PUB_DEV_REFRESH_TOKEN }}
         run: dart pub publish --force
 
