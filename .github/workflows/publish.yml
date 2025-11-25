@@ -62,6 +62,8 @@ jobs:
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-gnu
 
       - name: Build Windows shared library
         run: .\tool\build_windows.ps1
