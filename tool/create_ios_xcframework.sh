@@ -8,16 +8,15 @@ IOS_LIB_DIR="$PROJECT_ROOT/ios/Libraries"
 HEADER_DIR="$PROJECT_ROOT/ios/Classes"
 FRAMEWORK_DIR="$IOS_LIB_DIR/opus_ffi.xcframework"
 
-# Ensure cbindgen is installed
-if ! command -v cbindgen &> /dev/null; then
-    echo "cbindgen not found, installing..."
-    cargo install cbindgen
-fi
-
-# Generate C header
-echo "Generating C header..."
+# Copy generated C header
+echo "Copying C header..."
 mkdir -p "$HEADER_DIR"
-cbindgen --config "$RUST_DIR/cbindgen.toml" --crate opus_ffi --output "$HEADER_DIR/opus_ffi.h" "$RUST_DIR"
+if [[ -f "$RUST_DIR/include/opus_ffi.h" ]]; then
+    cp "$RUST_DIR/include/opus_ffi.h" "$HEADER_DIR/opus_ffi.h"
+else
+    echo "Error: $RUST_DIR/include/opus_ffi.h not found. Ensure cargo build has run."
+    exit 1
+fi
 
 # Paths to artifacts built by build_apple.sh
 ARM64_DEVICE="$IOS_LIB_DIR/aarch64-apple-ios/libopus_ffi.a"
