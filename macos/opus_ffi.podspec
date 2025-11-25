@@ -29,18 +29,4 @@ Opus ffi plugin project.
   s.platform = :osx, '10.11'
   s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES' }
   s.swift_version = '5.0'
-
-  build_script = <<-SCRIPT
-    set -euo pipefail
-    "${PODS_TARGET_SRCROOT}/../tool/build_apple.sh"
-  SCRIPT
-
-  s.script_phases = [
-    {
-      :name => 'Build Rust opus_ffi library',
-      :execution_position => :before_compile,
-      :shell_path => '/bin/bash',
-      :script => build_script,
-    },
-  ]
 end

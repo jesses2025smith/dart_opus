@@ -15,24 +15,10 @@ Opus ffi plugin project.
 
   s.source           = { :path => '.' }
   s.source_files = 'Classes/**/*'
-  s.vendored_libraries = 'Libraries/**/*.a'
-  s.preserve_paths = 'Libraries'
+  s.public_header_files = 'Classes/**/*.h'
+  s.vendored_frameworks = 'Libraries/opus_ffi.xcframework'
   s.dependency 'Flutter'
   s.platform = :ios, '13.0'
-
-  build_script = <<-SCRIPT
-    set -euo pipefail
-    "${PODS_TARGET_SRCROOT}/../tool/build_apple.sh"
-  SCRIPT
-
-  s.script_phases = [
-    {
-      :name => 'Build Rust opus_ffi library',
-      :execution_position => :before_compile,
-      :shell_path => '/bin/bash',
-      :script => build_script,
-    },
-  ]
 
   # Flutter.framework does not contain a i386 slice.
   s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES', 'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386' }
