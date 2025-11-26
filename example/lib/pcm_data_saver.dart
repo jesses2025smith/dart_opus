@@ -96,13 +96,13 @@ class PcmDataSaver {
   Future<Uint8List> _wavHeader() async {
     final int frameSize = ((_sampleBits + 7) ~/ 8) * _channels;
     ByteData data = ByteData(_wavHeaderSize);
-    data.setUint32(0x04, _dataLen + _wavHeaderSize, _endian); // 文件大小
+    data.setUint32(0x04, _dataLen + _wavHeaderSize - 8, _endian); // 文件大小
     data.setUint32(0x10, 16, _endian);
     data.setUint16(0x14, 1, _endian);
     data.setUint16(0x16, _channels, _endian);
     data.setUint32(0x18, _sampleRate, _endian);
     data.setUint32(0x1C, _sampleRate * frameSize, _endian);
-    data.setUint16(0x1e, frameSize, _endian);
+    data.setUint16(0x20, frameSize, _endian);
     data.setUint16(0x22, _sampleBits, _endian);
     data.setUint32(0x28, _dataLen, _endian); // 数据大小
     Uint8List bytes = data.buffer.asUint8List();
