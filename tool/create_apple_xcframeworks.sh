@@ -8,7 +8,6 @@ IOS_LIB_DIR="$PROJECT_ROOT/ios/Libraries"
 MACOS_LIB_DIR="$PROJECT_ROOT/macos/Libraries"
 HEADER_DIR="$PROJECT_ROOT/ios/Classes"
 IOS_FRAMEWORK_DIR="$IOS_LIB_DIR/opus_ffi.xcframework"
-MACOS_FRAMEWORK_DIR="$MACOS_LIB_DIR/opus_ffi.xcframework"
 
 # Copy generated C header
 echo "Copying C header..."
@@ -69,41 +68,28 @@ echo "iOS XCFramework created at $IOS_FRAMEWORK_DIR"
 rm -rf "$SIM_FAT_DIR"
 
 # ============================================
-# macOS XCFramework
+# macOS Universal Binary (no xcframework needed)
 # ============================================
-echo "Creating macOS XCFramework..."
+echo "Creating macOS Universal Binary..."
 
 # Paths to macOS artifacts
 ARM64_MACOS="$MACOS_LIB_DIR/aarch64-apple-darwin/libopus_ffi.dylib"
 X86_64_MACOS="$MACOS_LIB_DIR/x86_64-apple-darwin/libopus_ffi.dylib"
+UNIVERSAL_LIB="$MACOS_LIB_DIR/libopus_ffi.dylib"
 
-# Create universal binary for macOS
-UNIVERSAL_DIR="$MACOS_LIB_DIR/universal"
-mkdir -p "$UNIVERSAL_DIR"
-UNIVERSAL_LIB="$UNIVERSAL_DIR/libopus_ffi.dylib"
-
-echo "Creating macOS Universal Binary..."
+# Create universal binary for macOS (if both architectures exist)
 if [[ -f "$ARM64_MACOS" && -f "$X86_64_MACOS" ]]; then
+    echo "Creating universal binary from arm64 and x86_64..."
     lipo -create "$ARM64_MACOS" "$X86_64_MACOS" -output "$UNIVERSAL_LIB"
+    echo "macOS universal binary created at $UNIVERSAL_LIB"
 elif [[ -f "$X86_64_MACOS" ]]; then
+    echo "Only x86_64 found, copying as universal binary..."
     cp "$X86_64_MACOS" "$UNIVERSAL_LIB"
 elif [[ -f "$ARM64_MACOS" ]]; then
+    echo "Only arm64 found, copying as universal binary..."
     cp "$ARM64_MACOS" "$UNIVERSAL_LIB"
 else
-    echo "Error: No macOS binaries found."
-    exit 1
+    echo "Warning: No macOS binaries found. Universal binary will be created during build."
 fi
 
-# Create macOS XCFramework
-rm -rf "$MACOS_FRAMEWORK_DIR"
-xcodebuild -create-xcframework \
-    -library "$UNIVERSAL_LIB" \
-    -headers "$HEADER_DIR" \
-    -output "$MACOS_FRAMEWORK_DIR"
-
-echo "macOS XCFramework created at $MACOS_FRAMEWORK_DIR"
-
-# Cleanup
-rm -rf "$UNIVERSAL_DIR"
-
-echo "All XCFrameworks created successfully!"
+echo "Apple libraries processed successfully!"

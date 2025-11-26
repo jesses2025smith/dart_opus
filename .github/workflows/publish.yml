@@ -132,7 +132,7 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: macos-libs
-          path: macos/Libraries/opus_ffi.xcframework
+          path: macos/Libraries/libopus_ffi.dylib
 
   publish:
     needs: [build-android-linux, build-windows, build-apple]
@@ -170,7 +170,7 @@ jobs:
         uses: actions/download-artifact@v5
         with:
           name: macos-libs
-          path: macos/Libraries/opus_ffi.xcframework
+          path: macos/Libraries
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2

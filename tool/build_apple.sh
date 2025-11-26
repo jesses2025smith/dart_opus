@@ -41,6 +41,24 @@ if [[ "${PLATFORM_NAME_VALUE}" == "macosx" ]]; then
   OUTPUT_DIR="${PROJECT_ROOT}/macos/Libraries/${TARGET_TRIPLE}"
   mkdir -p "${OUTPUT_DIR}"
   cp "${RUST_DIR}/target/${TARGET_TRIPLE}/release/${LIB_NAME}" "${OUTPUT_DIR}/${LIB_NAME}"
+  
+  # Create universal binary if both architectures are built
+  UNIVERSAL_DIR="${PROJECT_ROOT}/macos/Libraries"
+  ARM64_LIB="${UNIVERSAL_DIR}/aarch64-apple-darwin/${LIB_NAME}"
+  X86_64_LIB="${UNIVERSAL_DIR}/x86_64-apple-darwin/${LIB_NAME}"
+  UNIVERSAL_LIB="${UNIVERSAL_DIR}/libopus_ffi.dylib"
+  
+  if [[ -f "${ARM64_LIB}" && -f "${X86_64_LIB}" ]]; then
+    echo "Creating macOS universal binary..."
+    lipo -create "${ARM64_LIB}" "${X86_64_LIB}" -output "${UNIVERSAL_LIB}"
+    echo "Universal binary created at ${UNIVERSAL_LIB}"
+  elif [[ "${ARCHS_VALUE}" == "arm64" && -f "${ARM64_LIB}" ]]; then
+    # If only arm64 is built, copy it as the universal binary
+    cp "${ARM64_LIB}" "${UNIVERSAL_LIB}"
+  elif [[ "${ARCHS_VALUE}" == "x86_64" && -f "${X86_64_LIB}" ]]; then
+    # If only x86_64 is built, copy it as the universal binary
+    cp "${X86_64_LIB}" "${UNIVERSAL_LIB}"
+  fi
 else
   IOS_MIN_VERSION="${IOS_MIN_VERSION:-13.0}"
   export IPHONEOS_DEPLOYMENT_TARGET="${IOS_MIN_VERSION}"

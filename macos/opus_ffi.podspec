@@ -16,7 +16,25 @@ Opus ffi plugin project.
   s.source           = { :path => '.' }
   s.source_files     = 'Classes/**/*'
   s.public_header_files = 'Classes/**/*.h'
-  s.vendored_frameworks = 'Libraries/opus_ffi.xcframework'
+  
+  # Use direct library dependency instead of xcframework for macOS
+  # Preserve the dylib file so it can be accessed during build
+  s.preserve_paths = 'Libraries/libopus_ffi.dylib'
+  
+  # Script phase to ensure the dylib is available at runtime
+  s.script_phase = {
+    :name => 'Setup opus_ffi dylib',
+    :script => <<-SCRIPT
+      DYLIB_SRC="${PODS_TARGET_SRCROOT}/Libraries/libopus_ffi.dylib"
+      if [ -f "${DYLIB_SRC}" ]; then
+        # Copy dylib to Frameworks folder
+        mkdir -p "${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}"
+        cp "${DYLIB_SRC}" "${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/libopus_ffi.dylib"
+        # Fix install name to use @rpath
+        install_name_tool -id "@rpath/libopus_ffi.dylib" "${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/libopus_ffi.dylib" 2>/dev/null || true
+      fi
+    SCRIPT
+  }
 
   # If your plugin requires a privacy manifest, for example if it collects user
   # data, update the PrivacyInfo.xcprivacy file to describe your plugin's
@@ -27,6 +45,11 @@ Opus ffi plugin project.
   s.dependency 'FlutterMacOS'
 
   s.platform = :osx, '10.11'
-  s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES' }
+  s.pod_target_xcconfig = { 
+    'DEFINES_MODULE' => 'YES',
+    'LIBRARY_SEARCH_PATHS' => '$(inherited) $(PODS_TARGET_SRCROOT)/Libraries',
+    'OTHER_LDFLAGS' => '$(inherited) -L$(PODS_TARGET_SRCROOT)/Libraries -lopus_ffi',
+    'LD_RUNPATH_SEARCH_PATHS' => '$(inherited) @executable_path/../Frameworks'
+  }
   s.swift_version = '5.0'
 end

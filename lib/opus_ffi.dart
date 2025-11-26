@@ -6,18 +6,23 @@ export 'opus_decoder.dart';
 export 'opus_encoder.dart';
 export 'opus_error.dart';
 
-const String _libName = 'opus_ffi';
-
 /// The dynamic library in which the symbols for [OpusFfiBindings] can be found.
 final DynamicLibrary _dylib = () {
-  if (Platform.isMacOS || Platform.isIOS) {
-    return DynamicLibrary.open('$_libName.framework/$_libName');
+  const libName = 'opus_ffi';
+
+  if (Platform.isIOS) {
+    // iOS links the static library directly into the host binary, so the
+    // symbols are already available in the current process image.
+    return DynamicLibrary.process();
+  }
+  if (Platform.isMacOS) {
+    return DynamicLibrary.open('$libName.framework/$libName');
   }
   if (Platform.isAndroid || Platform.isLinux) {
-    return DynamicLibrary.open('lib$_libName.so');
+    return DynamicLibrary.open('lib$libName.so');
   }
   if (Platform.isWindows) {
-    return DynamicLibrary.open('$_libName.dll');
+    return DynamicLibrary.open('$libName.dll');
   }
   throw UnsupportedError('Unknown platform: ${Platform.operatingSystem}');
 }();
