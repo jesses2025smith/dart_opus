@@ -37,6 +37,7 @@ class _OpusDecoderPageState extends State<OpusDecoderPage> {
   bool _isDecoded = false;
   String? _wavFilePath;
   String? _errorMessage;
+  Duration? _conversionDuration;
   final AudioPlayer _audioPlayer = AudioPlayer();
   bool _isPlaying = false;
 
@@ -52,11 +53,13 @@ class _OpusDecoderPageState extends State<OpusDecoderPage> {
       _isDecoded = false;
       _errorMessage = null;
       _wavFilePath = null;
+      _conversionDuration = null;
     });
 
     try {
       // 加载 opus 文件
-      final ByteData opusData = await rootBundle.load('assets/data/R20251013-120111.opus');
+      final ByteData opusData =
+          await rootBundle.load('assets/data/R20251013-120111.opus');
       final Uint8List opusBytes = opusData.buffer.asUint8List();
 
       // 创建解码器（假设是单声道，16kHz 采样率，可以根据实际情况调整）
@@ -80,24 +83,28 @@ class _OpusDecoderPageState extends State<OpusDecoderPage> {
 
         await pcmSaver.open();
 
+        final startTime = DateTime.now();
+
         // 按块解码 opus 数据（每个块 80 字节，与测试代码保持一致）
         const int chunkSize = 80;
+        final length = opusBytes.length;
         int offset = 0;
 
-        while (offset < opusBytes.length) {
-          final remaining = opusBytes.length - offset;
-          final currentChunkSize = remaining < chunkSize ? remaining : chunkSize;
-          
+        while (offset < length) {
+          final remaining = length - offset;
+          final currentChunkSize =
+              remaining < chunkSize ? remaining : chunkSize;
+
           final chunk = opusBytes.sublist(offset, offset + currentChunkSize);
-          
+
           try {
             final pcmData = decoder.decode(chunk);
-            
+
             // 将 Int16List 转换为字节列表以便写入
             // Int16List 每个元素是 2 字节，所以需要转换为字节数组
             final pcmBytes = Uint8List.view(pcmData.buffer);
             await pcmSaver.write(pcmBytes.toList());
-            
+
             offset += currentChunkSize;
           } catch (e) {
             // 如果单个块解码失败，尝试解码剩余的所有数据
@@ -112,11 +119,13 @@ class _OpusDecoderPageState extends State<OpusDecoderPage> {
         }
 
         await pcmSaver.close();
+        final endTime = DateTime.now();
 
         setState(() {
           _wavFilePath = wavPath;
           _isDecoded = true;
           _isDecoding = false;
+          _conversionDuration = endTime.difference(startTime);
         });
       } finally {
         decoder.dispose();
@@ -217,6 +226,14 @@ class _OpusDecoderPageState extends State<OpusDecoderPage> {
                     color: Colors.grey,
                   ),
                 ),
+                if (_conversionDuration != null)
+                  Text(
+                    '转换耗时: ${(_conversionDuration!.inMilliseconds / 1000.0).toStringAsFixed(3)} s',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey,
+                    ),
+                  ),
               ],
               if (_errorMessage != null) ...[
                 const SizedBox(height: 24),
